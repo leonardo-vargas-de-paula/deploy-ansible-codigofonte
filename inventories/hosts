@@ -1,3 +1,2 @@
-[frotend]
-
+[frontend]
 frotend_server ansible_host=192.168.56.105
