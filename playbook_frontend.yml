@@ -2,22 +2,56 @@
 - name: Rodar NGINX via Podman (modo root)
   hosts: frontend
   become: true
-
+  vars:
+    frontend_deploy_dest: /var/www/nginx/srv/frontend/
   tasks:
-
     - name: Instalar Podman
       apt:
         name: podman
         state: present
         update_cache: yes
-
     - name: Criar diretório para conteúdo do nginx
       file:
         path: /var/www/nginx
         state: directory
         mode: '0755'
-
+    - name: Criar diretório para conteúdo do frontend
+      file:
+        path: "{{ frontend_deploy_dest }}"
+        state: directory
+        mode: '0755'
+    - name: Criar diretório da config NGINX
+      file:
+        path: /var/www/nginx/config
+        state: directory
+        mode: '0755'
+    - name: Renderizar template nginx.conf
+      template:
+        src: nginx.conf.j2
+        dest: /var/www/nginx/config/nginx.conf
     - name: Rodar container NGINX com Podman (root)
+      containers.podman.podman_container:
+        name: nginx_frontend
+        image: docker.io/library/nginx:latest
+        state: started
+        recreate: true
+        restart_policy: always
+        publish:
+          - "8081:80"
+        volume:
+          - "{{ frontend_deploy_dest }}:{{ frontend_deploy_dest }}:Z"
+          - "/var/www/nginx/config/nginx.conf:/etc/nginx/nginx.conf:Z"
+        working_dir: "{{ frontend_deploy_dest }}"
+      notify:
+        - Reiniciar NGINX 
+    - name: Copiar artefatos do frontend
+      copy: 
+        src: app-src/public/
+        dest: "{{ frontend_deploy_dest }}"
+      notify:
+        - Reiniciar NGINX 
+  handlers:
+    - name: Reiniciar NGINX
       containers.podman.podman_container:
         name: nginx_frontend
         image: docker.io/library/nginx:latest
@@ -26,4 +60,7 @@
         publish:
           - "8081:80"
         volume:
-          - "/var/www/nginx:/usr/share/nginx/html:Z"
+          - "{{ frontend_deploy_dest }}:{{ frontend_deploy_dest }}:Z"
+          - "/var/www/nginx/config/nginx.conf:/etc/nginx/nginx.conf:Z"
+        working_dir: "{{ frontend_deploy_dest }}"
+        force_restart: true
