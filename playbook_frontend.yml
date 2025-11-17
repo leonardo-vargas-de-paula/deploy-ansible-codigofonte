@@ -1,0 +1,29 @@
+---
+- name: Rodar NGINX via Podman (modo root)
+  hosts: frontend
+  become: true
+
+  tasks:
+
+    - name: Instalar Podman
+      apt:
+        name: podman
+        state: present
+        update_cache: yes
+
+    - name: Criar diretório para conteúdo do nginx
+      file:
+        path: /var/www/nginx
+        state: directory
+        mode: '0755'
+
+    - name: Rodar container NGINX com Podman (root)
+      containers.podman.podman_container:
+        name: nginx_frontend
+        image: docker.io/library/nginx:latest
+        state: started
+        restart_policy: always
+        publish:
+          - "8081:80"
+        volume:
+          - "/var/www/nginx:/usr/share/nginx/html:Z"
