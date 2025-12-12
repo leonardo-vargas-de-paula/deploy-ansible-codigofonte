@@ -1,0 +1,5 @@
+- name: Realiza deploy
+  hosts: servers
+  become: yes
+  -roles:
+    - deploy-frontend
