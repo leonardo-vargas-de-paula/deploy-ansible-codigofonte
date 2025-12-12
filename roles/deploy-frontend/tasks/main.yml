@@ -1,10 +1,5 @@
----
-- name: Rodar NGINX via Podman (modo root)
-  hosts: frontend
-  become: true
-  vars:
-    frontend_deploy_dest: /var/www/nginx/srv/frontend/
-  tasks:
+    
+    
     - name: Instalar Podman
       apt:
         name: podman
@@ -50,17 +45,3 @@
         dest: "{{ frontend_deploy_dest }}"
       notify:
         - Reiniciar NGINX 
-  handlers:
-    - name: Reiniciar NGINX
-      containers.podman.podman_container:
-        name: nginx_frontend
-        image: docker.io/library/nginx:latest
-        state: started
-        restart_policy: always
-        publish:
-          - "8081:80"
-        volume:
-          - "{{ frontend_deploy_dest }}:{{ frontend_deploy_dest }}:Z"
-          - "/var/www/nginx/config/nginx.conf:/etc/nginx/nginx.conf:Z"
-        working_dir: "{{ frontend_deploy_dest }}"
-        force_restart: true
